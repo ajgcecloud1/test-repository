@@ -1,0 +1,133 @@
+---
+- hosts: Prod
+  become: true
+  become_user: root
+  tasks:
+          - name: Shutdown CentOS Systems
+            command: poweroff
+            when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+
+===================
+===================
+
+---
+- hosts: Prod
+  tasks:
+          - name: Ansible Loop
+            debug:
+                    msg: "{{ item }}"
+            with_items:
+                    - "hello1"
+                    - "hello2"
+                    - "hello3"
+                    - "hello4"
+            when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >=6
+
+
+
+==============
+==============
+The following loops are supported by Ansible:
+
+Simple loops:
+
+- yum:
+  name: postfix
+  state: latest
+
+- yum:
+  name: dovecot
+  state: latest
+
+
+These two similar tasks using the yum module can be rewritten with a simple loop so that only
+one task is needed to install both packages:
+
+
+- yum:
+   name: "{{ item }}"
+   state: latest
+  with_items:
+   - postfix
+   - dovecot
+
+
+
+The following loops are supported by Ansible:
+
+vars:
+ mail_services:
+  - postfix
+  - dovecot
+
+tasks:
+  - yum:
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ mail_services }}"
+
+
+The following loops are supported by Ansible:
+
+
+List of hashes: When passing arrays as arguments, the array can be a list of hashes. The
+following snippet shows how a multidimensional array (an array with key-pair values) is passed to the user module in order to customize both the name and the group:
+
+
+- user:
+   name: "{{ item.name }}"
+   state: present
+   groups: "{{ item.groups }}"
+ with_items:
+   - { name: 'jane', groups: 'wheel' }
+
+===============
+===============
+---
+- hosts: Prod
+  become: true
+  become_user: root
+  tasks:
+          - name: Mount the OS Media Drive
+            command: mount /dev/sr0 /mnt
+          - name: Copy the local repo file
+            copy:
+                    src: /home/sverma/ansible/server.repo
+                    dest: /etc/yum.repos.d
+          - name: Installing Multiple Packages
+            yum:
+                    name: "{{ item }}"
+                    state: latest
+            with_items:
+                    - vsftpd
+                    - httpd
+                    - postfix
+                    - dovecot
+          - name: Start & Enable VSFTPD Service
+            service:
+                    name: vsftpd
+                    state: started
+                    enabled: true
+          - name: Start & Enable HTTPD Service
+            service:
+                    name: httpd
+                    state: started
+                    enabled: true
+          - name: Create Web Content
+            copy:
+                    src: /home/sverma/roles/myvhost/files/html
+                    dest: /var/www/vhosts/{{ ansible_hostname }}
+            notify:
+                    - restart_httpd
+
+# Handlers for restarting httpd
+           handlers
+             - name: restart_httpd
+               service:
+                       name: httpd
+                       start: restarted
+
+
+
+
